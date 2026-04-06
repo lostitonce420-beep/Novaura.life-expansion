@@ -1,0 +1,9 @@
+{
+  "name": "Novaura Expansion",
+  "description": "A showcase of Google\u0027s most advanced AI capabilities including Gemini Live, Veo 3, Lyria, and more.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
