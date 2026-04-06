@@ -11,7 +11,9 @@ import {
   Sparkles,
   Database,
   Menu,
-  X
+  X,
+  Key,
+  CreditCard
 } from 'lucide-react';
 import { useState } from 'react';
 import { clsx, type ClassValue } from 'clsx';
@@ -31,6 +33,8 @@ const navigation = [
   { name: 'Analysis', href: '/analysis', icon: Sparkles },
   { name: 'Grounding', href: '/grounding', icon: Search },
   { name: 'Cloud Manager', href: '/cloud', icon: Database },
+  { name: 'API Hub', href: '/api-hub', icon: Key },
+  { name: 'Stripe Demo', href: '/stripe-demo', icon: CreditCard },
 ];
 
 export default function Layout() {

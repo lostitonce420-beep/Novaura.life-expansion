@@ -10,6 +10,8 @@ import VoiceLive from './pages/VoiceLive';
 import Analysis from './pages/Analysis';
 import Grounding from './pages/Grounding';
 import CloudManager from './pages/CloudManager';
+import ApiHub from './pages/ApiHub';
+import StripeDemo from './pages/StripeDemo';
 
 export default function App() {
   return (
@@ -25,6 +27,8 @@ export default function App() {
           <Route path="analysis" element={<Analysis />} />
           <Route path="grounding" element={<Grounding />} />
           <Route path="cloud" element={<CloudManager />} />
+          <Route path="api-hub" element={<ApiHub />} />
+          <Route path="stripe-demo" element={<StripeDemo />} />
         </Route>
       </Routes>
     </BrowserRouter>
