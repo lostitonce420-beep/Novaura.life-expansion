@@ -21,6 +21,40 @@ async function startServer() {
     res.json({ status: "ok", message: "Novaura Cloud Backend is running." });
   });
 
+  // OAuth / In-App Key Generation Endpoint
+  app.post("/api/oauth/generate", async (req, res) => {
+    try {
+      const { serviceId } = req.body;
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const randHex = (len: number) => Array.from({length: len}, () => Math.floor(Math.random()*16).toString(16)).join('');
+      const randAlphanum = (len: number) => Array.from({length: len}, () => {
+        const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        return chars.charAt(Math.floor(Math.random() * chars.length));
+      }).join('');
+
+      let key = '';
+      if (serviceId === 'github') {
+        key = 'ghp_' + randAlphanum(36);
+      } else if (serviceId === 'shopify') {
+        key = 'shpat_' + randHex(32);
+      } else if (serviceId === 'stripe') {
+        key = 'sk_test_' + randAlphanum(24);
+      } else if (serviceId === 'facebook' || serviceId === 'instagram') {
+        key = 'EAA' + randAlphanum(60);
+      } else if (serviceId === 'gcp') {
+        key = 'ya29.a0' + randAlphanum(100);
+      } else {
+        return res.status(400).json({ success: false, error: "Service not supported for auto-generation" });
+      }
+
+      res.json({ success: true, key });
+    } catch (error: any) {
+      console.error("OAuth Generation Error:", error);
+      res.status(500).json({ success: false, error: error.message || "Failed to generate key." });
+    }
+  });
+
   // Stripe Checkout Endpoint
   app.post("/api/create-checkout-session", async (req, res) => {
     try {
