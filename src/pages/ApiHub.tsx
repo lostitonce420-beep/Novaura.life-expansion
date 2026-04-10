@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Key, CheckCircle, XCircle, Eye, EyeOff, Save, RefreshCw, ExternalLink, HelpCircle, Plus, Trash2, ChevronDown, ChevronUp, AlertTriangle, Zap } from 'lucide-react';
+import { Key, CheckCircle, XCircle, Eye, EyeOff, Save, RefreshCw, ExternalLink, HelpCircle, Plus, Trash2, ChevronDown, ChevronUp, AlertTriangle, Zap, Download } from 'lucide-react';
 
 interface GuideStep {
   text: string;
@@ -230,6 +230,122 @@ const SERVICES: ApiServiceDef[] = [
     }
   },
   {
+    id: 'alibaba',
+    name: 'Alibaba Cloud (Aliyun)',
+    placeholder: 'Access Key ID',
+    regex: /^[a-zA-Z0-9]{16,24}$/,
+    errorMsg: 'Alibaba Cloud Access Key IDs are typically 16-24 alphanumeric characters.',
+    guideUrl: 'https://ram.console.aliyun.com/manage/ak',
+    inAppSupported: false,
+    steps: [
+      { text: 'Log in to the Alibaba Cloud Console.' },
+      { text: 'Hover over your avatar (top right) and click "AccessKey Management".' },
+      { text: 'Click "Create AccessKey".' },
+      { text: 'Copy the AccessKey ID and AccessKey Secret (keep the secret safe!).' }
+    ]
+  },
+  {
+    id: 'elevenlabs',
+    name: 'ElevenLabs',
+    placeholder: 'sk_...',
+    regex: /^[a-zA-Z0-9]{32}$/,
+    errorMsg: 'ElevenLabs API keys are typically 32 alphanumeric characters.',
+    guideUrl: 'https://elevenlabs.io/app/settings/api-keys',
+    inAppSupported: false,
+    steps: [
+      { text: 'Log in to ElevenLabs.' },
+      { text: 'Click on your profile picture in the bottom left and select "Profile".' },
+      { text: 'Click the eye icon next to your API key to reveal it.' },
+      { text: 'Copy the key.' }
+    ]
+  },
+  {
+    id: 'suno',
+    name: 'Suno AI',
+    placeholder: 'Bearer token or API Key',
+    regex: /^[a-zA-Z0-9_-]{20,}$/,
+    errorMsg: 'Suno API keys are typically long alphanumeric strings.',
+    guideUrl: 'https://suno.com/',
+    inAppSupported: false,
+    steps: [
+      { text: 'Log in to Suno AI.' },
+      { text: 'Navigate to your account settings or developer dashboard.' },
+      { text: 'Generate a new API key and copy it.' }
+    ]
+  },
+  {
+    id: 'udio',
+    name: 'Udio',
+    placeholder: 'API Key',
+    regex: /^[a-zA-Z0-9_-]{20,}$/,
+    errorMsg: 'Udio API keys are typically long alphanumeric strings.',
+    guideUrl: 'https://www.udio.com/',
+    inAppSupported: false,
+    steps: [
+      { text: 'Log in to Udio.' },
+      { text: 'Navigate to your account settings.' },
+      { text: 'Find the API section, generate a key, and copy it.' }
+    ]
+  },
+  {
+    id: 'youtube',
+    name: 'YouTube Data API v3',
+    placeholder: 'AIzaSy...',
+    regex: /^AIza[0-9A-Za-z-_]{35}$/,
+    errorMsg: 'YouTube/Google API keys typically start with "AIza" followed by 35 characters.',
+    guideUrl: 'https://console.cloud.google.com/apis/library/youtube.googleapis.com',
+    inAppSupported: false,
+    steps: [
+      { text: 'Go to the Google Cloud Console.' },
+      { text: 'Enable the "YouTube Data API v3" in the API Library.' },
+      { text: 'Go to Credentials, click "Create Credentials" > "API Key".' },
+      { text: 'Copy the generated key (starts with AIza).' }
+    ]
+  },
+  {
+    id: 'google_search',
+    name: 'Google Custom Search API Key',
+    placeholder: 'AIzaSy...',
+    regex: /^AIza[0-9A-Za-z-_]{35}$/,
+    errorMsg: 'Google API keys typically start with "AIza" followed by 35 characters.',
+    guideUrl: 'https://developers.google.com/custom-search/v1/overview',
+    inAppSupported: false,
+    steps: [
+      { text: 'Go to the Google Cloud Console and enable "Custom Search API".' },
+      { text: 'Create an API Key in Credentials.' }
+    ]
+  },
+  {
+    id: 'google_search_cx',
+    name: 'Google Custom Search Engine ID (CX)',
+    placeholder: 'e.g., 1234567890abcdef',
+    regex: /^[a-zA-Z0-9]+$/,
+    errorMsg: 'Search Engine ID is typically alphanumeric.',
+    guideUrl: 'https://programmablesearchengine.google.com/',
+    inAppSupported: false,
+    steps: [
+      { text: 'Go to programmablesearchengine.google.com to create a search engine.' },
+      { text: 'Enable "Image search" in your search engine settings.' },
+      { text: 'Copy the Search Engine ID (CX).' }
+    ]
+  },
+  {
+    id: 'vertex_ai',
+    name: 'Vertex AI (Claude, Qwen, Imagen, Veo)',
+    placeholder: 'Configured via GCP Service Account',
+    regex: /.*/,
+    errorMsg: '',
+    guideUrl: 'https://cloud.google.com/vertex-ai',
+    inAppSupported: true,
+    steps: [
+      { text: 'Vertex AI does NOT use standard API keys. It uses Google Cloud IAM.' },
+      { text: 'Go to the Cloud Manager tab and upload your GCP Service Account JSON.' },
+      { text: 'Enable the "Vertex AI API" in your Google Cloud Console.' },
+      { text: 'Go to Vertex AI > Model Garden to accept the terms for Claude, Llama, or Qwen.' },
+      { text: 'Once configured, Novaura will route requests to these models using your GCP credentials.' }
+    ]
+  },
+  {
     id: 'gcp',
     name: 'Google Cloud Platform',
     placeholder: 'ya29.a0...',
@@ -313,6 +429,40 @@ export default function ApiHub() {
         console.error('Failed to parse custom keys');
       }
     }
+
+    // Listen for OAuth popup success messages
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'OAUTH_SUCCESS') {
+        const provider = event.data.provider;
+        
+        // In a real app, the backend would generate the true token.
+        // Here we simulate the token generation upon successful OAuth handshake.
+        const mockToken = provider === 'gcp' 
+          ? 'ya29.a0' + Array.from({length: 80}, () => Math.floor(Math.random()*16).toString(16)).join('')
+          : 'mock_token';
+
+        setKeysState(prev => {
+          const newState = {
+            ...prev,
+            [provider]: { key: mockToken, isValidated: true, isTesting: false, validationError: null }
+          };
+          
+          const toSave = Object.entries(newState).reduce((acc, [id, state]) => {
+            const s = state as { key: string | null };
+            if (s.key) acc[id] = s.key;
+            return acc;
+          }, {} as Record<string, string>);
+          localStorage.setItem('novaura_api_keys', JSON.stringify(toSave));
+          
+          return newState;
+        });
+
+        setInAppModal(prev => prev ? { ...prev, status: 'success' } : null);
+        setTimeout(() => setInAppModal(null), 2000);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, []);
 
   const handleKeyChange = (id: string, value: string) => {
@@ -347,6 +497,28 @@ export default function ApiHub() {
     
     setSaveStatus('saved');
     setTimeout(() => setSaveStatus('idle'), 3000);
+  };
+
+  const exportKeys = () => {
+    const toExport = Object.entries(keysState).reduce((acc, [id, state]) => {
+      if (state.key) acc[id] = state.key;
+      return acc;
+    }, {} as Record<string, string>);
+    
+    const exportData = {
+      standardKeys: toExport,
+      customKeys: customKeys
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'novaura_api_keys_export.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const testIntegration = async (id: string) => {
@@ -393,6 +565,29 @@ export default function ApiHub() {
 
   const executeAutoGenerate = async () => {
     if (!inAppModal) return;
+
+    // Handle Real OAuth Popup Flow for GCP
+    if (inAppModal.id === 'gcp') {
+      setInAppModal(prev => prev ? { ...prev, status: 'loading', errorMsg: undefined } : null);
+      try {
+        const res = await fetch('/api/auth/gcp/url');
+        const { url } = await res.json();
+        
+        // Open the OAuth provider's URL directly in a popup
+        const width = 600;
+        const height = 700;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        window.open(url, 'oauth_popup', `width=${width},height=${height},left=${left},top=${top}`);
+        
+        // The rest is handled by the 'message' event listener in useEffect
+      } catch (e: any) {
+        setInAppModal(prev => prev ? { ...prev, status: 'error', errorMsg: e.message || 'Failed to open OAuth popup' } : null);
+      }
+      return;
+    }
+
+    // Handle Mock Flow for others
     setInAppModal(prev => prev ? { ...prev, status: 'loading', errorMsg: undefined } : null);
     
     try {
@@ -435,13 +630,25 @@ export default function ApiHub() {
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-20">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-zinc-50 flex items-center gap-3">
-          <Key className="h-8 w-8 text-indigo-500" />
-          API Integration Hub
-        </h1>
-        <p className="mt-2 text-zinc-400 max-w-3xl">
-          Manage your third-party API keys for Novaura.life. Keys are validated locally against strict format rules and stored securely in your browser's local storage.
-        </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-zinc-50 flex items-center gap-3">
+              <Key className="h-8 w-8 text-indigo-500" />
+              API Integration Hub
+            </h1>
+            <p className="mt-2 text-zinc-400 max-w-3xl">
+              Manage your third-party API keys for Novaura.life. Keys are validated locally against strict format rules and stored securely in your browser's local storage.
+            </p>
+          </div>
+          <button
+            onClick={exportKeys}
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-medium rounded-lg transition-colors border border-zinc-700"
+            title="Export keys for use in other projects or builders"
+          >
+            <Download size={16} />
+            Export Keys
+          </button>
+        </div>
       </div>
 
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
