@@ -15,11 +15,15 @@ import {
   Key,
   CreditCard,
   Terminal,
-  Mail
+  Mail,
+  LogOut,
+  LogIn
 } from 'lucide-react';
 import { useState } from 'react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import MatrixBackground from './MatrixBackground';
+import { useAuth } from '../context/AuthContext';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -47,18 +51,12 @@ const adminNavigation = [
 export default function Layout() {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user, signIn, signOut } = useAuth();
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-50 flex relative overflow-hidden">
-      {/* Background Logo */}
-      <div className="fixed inset-0 z-0 pointer-events-none flex items-center justify-center opacity-[0.03]">
-        <img 
-          src="/logo.png" 
-          alt="Novaura Background" 
-          className="w-[800px] h-[800px] object-contain"
-          style={{ animation: 'spin 60s linear infinite' }}
-        />
-      </div>
+      {/* Matrix Background */}
+      <MatrixBackground />
 
       {/* Mobile sidebar toggle */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
@@ -72,7 +70,7 @@ export default function Layout() {
 
       {/* Sidebar */}
       <div className={cn(
-        "fixed inset-y-0 left-0 z-40 w-64 bg-zinc-950 border-r border-zinc-800 transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:block",
+        "fixed inset-y-0 left-0 z-40 w-64 bg-zinc-950 border-r border-zinc-800 transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:block flex flex-col",
         sidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="flex h-16 shrink-0 items-center px-6 border-b border-zinc-800">
@@ -139,11 +137,39 @@ export default function Layout() {
           </div>
         </nav>
         
-        <div className="p-4 border-t border-zinc-800">
-          <div className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-400">
-            <Database className="mr-3 h-5 w-5 text-zinc-500" />
-            Firebase Auth
-          </div>
+        <div className="p-4 border-t border-zinc-800 mt-auto">
+          {user ? (
+            <div className="flex flex-col space-y-3">
+              <div className="flex items-center px-2">
+                {user.photoURL ? (
+                  <img src={user.photoURL} alt="Profile" className="w-8 h-8 rounded-full mr-3" referrerPolicy="no-referrer" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center mr-3">
+                    {user.email?.[0].toUpperCase()}
+                  </div>
+                )}
+                <div className="flex flex-col overflow-hidden">
+                  <span className="text-sm font-medium text-zinc-200 truncate">{user.displayName || 'User'}</span>
+                  <span className="text-xs text-zinc-500 truncate">{user.email}</span>
+                </div>
+              </div>
+              <button 
+                onClick={signOut}
+                className="flex items-center justify-center w-full px-3 py-2 text-sm font-medium text-zinc-400 bg-zinc-900/50 hover:bg-zinc-800 hover:text-zinc-50 rounded-md transition-colors"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <button 
+              onClick={signIn}
+              className="flex items-center justify-center w-full px-3 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 rounded-md transition-colors"
+            >
+              <LogIn className="w-4 h-4 mr-2" />
+              Sign in with Google
+            </button>
+          )}
         </div>
       </div>
 

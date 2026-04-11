@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useState } from 'react';
 import Layout from './components/Layout';
 import IntroScreen from './components/IntroScreen';
+import { AuthProvider } from './context/AuthContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 import Home from './pages/Home';
 import CoreTerminal from './pages/CoreTerminal';
@@ -21,25 +23,27 @@ export default function App() {
   const [introComplete, setIntroComplete] = useState(false);
 
   return (
-    <BrowserRouter>
-      {!introComplete && <IntroScreen onComplete={() => setIntroComplete(true)} />}
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Home />} />
-          <Route path="core" element={<CoreTerminal />} />
-          <Route path="chat" element={<Chat />} />
-          <Route path="image" element={<ImageStudio />} />
-          <Route path="video" element={<VideoStudio />} />
-          <Route path="audio" element={<AudioStudio />} />
-          <Route path="voice" element={<VoiceLive />} />
-          <Route path="analysis" element={<Analysis />} />
-          <Route path="grounding" element={<Grounding />} />
-          <Route path="cloud" element={<CloudManager />} />
-          <Route path="api-hub" element={<ApiHub />} />
-          <Route path="stripe-demo" element={<StripeDemo />} />
-          <Route path="webmail" element={<Webmail />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        {!introComplete && <IntroScreen onComplete={() => setIntroComplete(true)} />}
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Home />} />
+            <Route path="core" element={<ProtectedRoute><CoreTerminal /></ProtectedRoute>} />
+            <Route path="chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+            <Route path="image" element={<ProtectedRoute><ImageStudio /></ProtectedRoute>} />
+            <Route path="video" element={<ProtectedRoute><VideoStudio /></ProtectedRoute>} />
+            <Route path="audio" element={<ProtectedRoute><AudioStudio /></ProtectedRoute>} />
+            <Route path="voice" element={<ProtectedRoute><VoiceLive /></ProtectedRoute>} />
+            <Route path="analysis" element={<ProtectedRoute><Analysis /></ProtectedRoute>} />
+            <Route path="grounding" element={<ProtectedRoute><Grounding /></ProtectedRoute>} />
+            <Route path="cloud" element={<ProtectedRoute><CloudManager /></ProtectedRoute>} />
+            <Route path="api-hub" element={<ProtectedRoute><ApiHub /></ProtectedRoute>} />
+            <Route path="stripe-demo" element={<ProtectedRoute><StripeDemo /></ProtectedRoute>} />
+            <Route path="webmail" element={<ProtectedRoute><Webmail /></ProtectedRoute>} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }

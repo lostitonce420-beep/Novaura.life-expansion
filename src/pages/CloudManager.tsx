@@ -4,6 +4,8 @@ import { cn } from '../components/Layout';
 
 const CLOUD_CONFIG_KEY = 'novaura_cloud_config';
 const ALIBABA_CONFIG_KEY = 'novaura_alibaba_config';
+const AWS_CONFIG_KEY = 'novaura_aws_config';
+const FIREBASE_CONFIG_KEY = 'novaura_firebase_config';
 const LEGAL_CONSENT_KEY = 'novaura_legal_consent';
 
 export default function CloudManager() {
@@ -26,6 +28,18 @@ export default function CloudManager() {
   const [isAlibabaDeploying, setIsAlibabaDeploying] = useState(false);
   const [alibabaDeployUrl, setAlibabaDeployUrl] = useState<string | null>(null);
 
+  // AWS State
+  const [awsConfig, setAwsConfig] = useState({ accessKeyId: '', secretAccessKey: '', region: 'us-east-1' });
+  const [isAwsSaved, setIsAwsSaved] = useState(false);
+  const [isAwsDeploying, setIsAwsDeploying] = useState(false);
+  const [awsDeployUrl, setAwsDeployUrl] = useState<string | null>(null);
+
+  // Firebase State
+  const [firebaseConfig, setFirebaseConfig] = useState({ projectId: '', token: '' });
+  const [isFirebaseSaved, setIsFirebaseSaved] = useState(false);
+  const [isFirebaseDeploying, setIsFirebaseDeploying] = useState(false);
+  const [firebaseDeployUrl, setFirebaseDeployUrl] = useState<string | null>(null);
+
   // Admin Services State
   const [apiToggles, setApiToggles] = useState<Record<string, { loading: boolean, enabled: boolean }>>({
     'run.googleapis.com': { loading: false, enabled: false },
@@ -33,6 +47,11 @@ export default function CloudManager() {
     'drive.googleapis.com': { loading: false, enabled: false },
     'firebase.googleapis.com': { loading: false, enabled: false },
   });
+
+  // Git Clone State
+  const [gitRepoUrl, setGitRepoUrl] = useState('');
+  const [isCloning, setIsCloning] = useState(false);
+  const [gitOutput, setGitOutput] = useState<string | null>(null);
 
   // Legal Consent State
   const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
@@ -52,6 +71,20 @@ export default function CloudManager() {
     if (savedAlibaba) {
       try {
         setAlibabaConfig(JSON.parse(savedAlibaba));
+      } catch (e) {}
+    }
+
+    const savedAws = localStorage.getItem(AWS_CONFIG_KEY);
+    if (savedAws) {
+      try {
+        setAwsConfig(JSON.parse(savedAws));
+      } catch (e) {}
+    }
+
+    const savedFirebase = localStorage.getItem(FIREBASE_CONFIG_KEY);
+    if (savedFirebase) {
+      try {
+        setFirebaseConfig(JSON.parse(savedFirebase));
       } catch (e) {}
     }
   }, []);
@@ -164,6 +197,78 @@ export default function CloudManager() {
     }
   };
 
+  const handleAwsSave = () => {
+    if (awsConfig.accessKeyId && awsConfig.secretAccessKey) {
+      localStorage.setItem(AWS_CONFIG_KEY, JSON.stringify(awsConfig));
+      setIsAwsSaved(true);
+      setTimeout(() => setIsAwsSaved(false), 3000);
+    } else {
+      localStorage.removeItem(AWS_CONFIG_KEY);
+    }
+  };
+
+  const handleAwsDeploy = async () => {
+    setIsAwsDeploying(true);
+    setError(null);
+    setAwsDeployUrl(null);
+    
+    try {
+      const response = await fetch('/api/aws/deploy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(awsConfig)
+      });
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to deploy to AWS');
+      }
+      
+      setAwsDeployUrl(data.url);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsAwsDeploying(false);
+    }
+  };
+
+  const handleFirebaseSave = () => {
+    if (firebaseConfig.projectId && firebaseConfig.token) {
+      localStorage.setItem(FIREBASE_CONFIG_KEY, JSON.stringify(firebaseConfig));
+      setIsFirebaseSaved(true);
+      setTimeout(() => setIsFirebaseSaved(false), 3000);
+    } else {
+      localStorage.removeItem(FIREBASE_CONFIG_KEY);
+    }
+  };
+
+  const handleFirebaseDeploy = async () => {
+    setIsFirebaseDeploying(true);
+    setError(null);
+    setFirebaseDeployUrl(null);
+    
+    try {
+      const response = await fetch('/api/firebase/deploy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(firebaseConfig)
+      });
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to deploy to Firebase');
+      }
+      
+      setFirebaseDeployUrl(data.url);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsFirebaseDeploying(false);
+    }
+  };
+
   const handleApiToggle = async (apiName: string, currentEnabled: boolean) => {
     setApiToggles(prev => ({ ...prev, [apiName]: { ...prev[apiName], loading: true } }));
     setError(null);
@@ -194,6 +299,33 @@ export default function CloudManager() {
     }
   };
 
+  const handleGitClone = async () => {
+    if (!gitRepoUrl.trim()) return;
+    setIsCloning(true);
+    setGitOutput(null);
+    setError(null);
+    
+    try {
+      const response = await fetch('/api/git/clone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repoUrl: gitRepoUrl.trim() })
+      });
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to clone repository');
+      }
+      
+      setGitOutput(`Cloned to: ${data.cloneDir}\n\n${data.output}`);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsCloning(false);
+    }
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     // Could add a toast notification here
@@ -204,7 +336,7 @@ export default function CloudManager() {
     setHasAcceptedTerms(true);
   };
 
-  const hasConfig = !!serviceAccountJson.trim() || !!alibabaConfig.accessKeyId.trim();
+  const hasConfig = !!serviceAccountJson.trim() || !!alibabaConfig.accessKeyId.trim() || !!awsConfig.accessKeyId.trim() || !!firebaseConfig.projectId.trim();
 
   if (!hasAcceptedTerms) {
     return (
@@ -399,6 +531,115 @@ export default function CloudManager() {
                 </div>
               </div>
 
+              {/* AWS Section */}
+              <div className="space-y-6 pt-6 border-t border-zinc-800/50">
+                <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                  <h2 className="text-xl font-semibold text-zinc-100 flex items-center gap-2">
+                    <Box className="text-amber-500" size={20} /> Amazon Web Services (AWS)
+                  </h2>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-300">Access Key ID</label>
+                    <input
+                      type="text"
+                      value={awsConfig.accessKeyId}
+                      onChange={(e) => setAwsConfig({...awsConfig, accessKeyId: e.target.value})}
+                      placeholder="AKIAIOSFODNN7EXAMPLE"
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-sm text-zinc-300 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-300">Secret Access Key</label>
+                    <input
+                      type="password"
+                      value={awsConfig.secretAccessKey}
+                      onChange={(e) => setAwsConfig({...awsConfig, secretAccessKey: e.target.value})}
+                      placeholder="••••••••••••••••"
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-sm text-zinc-300 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-sm font-medium text-zinc-300">Default Region</label>
+                    <select
+                      value={awsConfig.region}
+                      onChange={(e) => setAwsConfig({...awsConfig, region: e.target.value})}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-sm text-zinc-300 focus:outline-none focus:border-amber-500 appearance-none"
+                    >
+                      <option value="us-east-1">US East (N. Virginia) - us-east-1</option>
+                      <option value="us-east-2">US East (Ohio) - us-east-2</option>
+                      <option value="us-west-1">US West (N. California) - us-west-1</option>
+                      <option value="us-west-2">US West (Oregon) - us-west-2</option>
+                      <option value="eu-west-1">Europe (Ireland) - eu-west-1</option>
+                      <option value="ap-southeast-1">Asia Pacific (Singapore) - ap-southeast-1</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={handleAwsSave}
+                    className="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-6 py-2.5 font-medium flex items-center gap-2 transition-colors"
+                  >
+                    <Save size={18} />
+                    Save AWS Config
+                  </button>
+                  {isAwsSaved && (
+                    <span className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
+                      <CheckCircle2 size={16} /> Saved to Local Storage
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Firebase Section */}
+              <div className="space-y-6 pt-6 border-t border-zinc-800/50">
+                <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                  <h2 className="text-xl font-semibold text-zinc-100 flex items-center gap-2">
+                    <Database className="text-orange-500" size={20} /> Firebase
+                  </h2>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-300">Project ID</label>
+                    <input
+                      type="text"
+                      value={firebaseConfig.projectId}
+                      onChange={(e) => setFirebaseConfig({...firebaseConfig, projectId: e.target.value})}
+                      placeholder="my-firebase-project-id"
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-sm text-zinc-300 focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-300">CI Token (Optional)</label>
+                    <input
+                      type="password"
+                      value={firebaseConfig.token}
+                      onChange={(e) => setFirebaseConfig({...firebaseConfig, token: e.target.value})}
+                      placeholder="1//0e..."
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-sm text-zinc-300 focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={handleFirebaseSave}
+                    className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg px-6 py-2.5 font-medium flex items-center gap-2 transition-colors"
+                  >
+                    <Save size={18} />
+                    Save Firebase Config
+                  </button>
+                  {isFirebaseSaved && (
+                    <span className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
+                      <CheckCircle2 size={16} /> Saved to Local Storage
+                    </span>
+                  )}
+                </div>
+              </div>
+
               {/* GCP Section */}
               <div className="space-y-6 pt-6 border-t border-zinc-800/50">
                 <h2 className="text-xl font-semibold text-zinc-100 flex items-center gap-2">
@@ -501,19 +742,29 @@ export default function CloudManager() {
                         <Database className="text-orange-500" size={20} />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-zinc-100">Firebase & Firestore</h3>
-                        <p className="text-xs text-zinc-500">Database & Authentication</p>
+                        <h3 className="font-semibold text-zinc-100">Firebase Hosting</h3>
+                        <p className="text-xs text-zinc-500">Web App Deployment</p>
                       </div>
                     </div>
                     <p className="text-sm text-zinc-400">
-                      Provision a new Firebase database and set up authentication rules for your project.
+                      Deploy this application to Firebase Hosting using your configured Project ID and CI Token.
                     </p>
                     <button 
-                      onClick={() => alert('In a full-stack environment, this would trigger a backend script using the @google-cloud/resource-manager SDK to provision Firebase resources.')}
-                      className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-lg text-sm font-medium transition-colors"
+                      onClick={handleFirebaseDeploy}
+                      disabled={isFirebaseDeploying || !firebaseConfig.projectId}
+                      className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                     >
-                      Provision Firebase
+                      {isFirebaseDeploying ? <Loader2 size={16} className="animate-spin" /> : null}
+                      Deploy to Firebase
                     </button>
+                    {firebaseDeployUrl && (
+                      <div className="mt-3 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                        <p className="text-xs text-emerald-400 font-medium mb-1">Deployment Successful!</p>
+                        <a href={firebaseDeployUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-orange-400 hover:text-orange-300 break-all flex items-center gap-1">
+                          {firebaseDeployUrl} <ExternalLink size={12} />
+                        </a>
+                      </div>
+                    )}
                   </div>
 
                   {/* Cloud Run Card */}
@@ -582,14 +833,24 @@ export default function CloudManager() {
                       </div>
                     </div>
                     <p className="text-sm text-zinc-400">
-                      Deploy the frontend and backend to AWS Amplify. Requires AWS credentials in API Hub.
+                      Deploy the frontend and backend to AWS Amplify. Requires AWS credentials in the Config tab.
                     </p>
                     <button 
-                      onClick={() => alert('In a full environment, this would trigger an AWS Amplify deployment pipeline.')}
-                      className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-lg text-sm font-medium transition-colors"
+                      onClick={handleAwsDeploy}
+                      disabled={isAwsDeploying || !awsConfig.accessKeyId}
+                      className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                     >
+                      {isAwsDeploying ? <Loader2 size={16} className="animate-spin" /> : null}
                       Deploy to AWS
                     </button>
+                    {awsDeployUrl && (
+                      <div className="mt-3 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                        <p className="text-xs text-emerald-400 font-medium mb-1">Deployment Successful!</p>
+                        <a href={awsDeployUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-amber-400 hover:text-amber-300 break-all flex items-center gap-1">
+                          {awsDeployUrl} <ExternalLink size={12} />
+                        </a>
+                      </div>
+                    )}
                   </div>
                   <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-6 space-y-4">
                     <div className="flex items-center gap-3">
@@ -802,6 +1063,49 @@ export default function CloudManager() {
                     >
                       Manage Email Accounts
                     </button>
+                  </div>
+
+                  {/* Git Clone Utility */}
+                  <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-6 space-y-4 md:col-span-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                        <TerminalSquare className="text-indigo-500" size={20} />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-zinc-100">Git Repository Clone</h3>
+                        <p className="text-xs text-zinc-500">Server-side Source Control</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-zinc-400">
+                      Clone a GitHub, GitLab, or Bitbucket repository directly to the backend server's temporary storage.
+                    </p>
+                    
+                    <div className="flex gap-4">
+                      <input
+                        type="text"
+                        value={gitRepoUrl}
+                        onChange={(e) => setGitRepoUrl(e.target.value)}
+                        placeholder="https://github.com/username/repo.git"
+                        className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-2 text-sm text-zinc-300 focus:outline-none focus:border-indigo-500"
+                      />
+                      <button 
+                        onClick={handleGitClone}
+                        disabled={isCloning || !gitRepoUrl.trim()}
+                        className="px-6 py-2 bg-indigo-500 hover:bg-indigo-600 border border-indigo-500/30 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {isCloning ? <Loader2 size={16} className="animate-spin" /> : null}
+                        Clone Repository
+                      </button>
+                    </div>
+
+                    {gitOutput && (
+                      <div className="mt-4 p-4 bg-zinc-900 border border-zinc-800 rounded-lg">
+                        <h4 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Terminal Output</h4>
+                        <pre className="text-xs text-zinc-300 font-mono whitespace-pre-wrap overflow-x-auto">
+                          {gitOutput}
+                        </pre>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

@@ -235,6 +235,50 @@ async function startServer() {
     }
   });
 
+  // AWS Deployment Endpoint
+  app.post("/api/aws/deploy", async (req, res) => {
+    try {
+      const { accessKeyId, secretAccessKey, region } = req.body;
+      
+      if (!accessKeyId || !secretAccessKey) {
+        return res.status(400).json({ success: false, error: "AWS credentials are required" });
+      }
+
+      // Simulate deployment process to AWS Amplify
+      await new Promise(resolve => setTimeout(resolve, 4000));
+      
+      const randId = Array.from({length: 10}, () => Math.floor(Math.random()*36).toString(36)).join('');
+      const deployRegion = region || 'us-east-1';
+      const mockUrl = `https://${randId}.amplifyapp.com`;
+
+      res.json({ success: true, url: mockUrl });
+    } catch (error: any) {
+      console.error("AWS Deployment Error:", error);
+      res.status(500).json({ success: false, error: error.message || "Failed to deploy application to AWS." });
+    }
+  });
+
+  // Firebase Deployment Endpoint
+  app.post("/api/firebase/deploy", async (req, res) => {
+    try {
+      const { projectId, token } = req.body;
+      
+      if (!projectId) {
+        return res.status(400).json({ success: false, error: "Firebase Project ID is required" });
+      }
+
+      // Simulate deployment process to Firebase Hosting
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      const mockUrl = `https://${projectId}.web.app`;
+
+      res.json({ success: true, url: mockUrl });
+    } catch (error: any) {
+      console.error("Firebase Deployment Error:", error);
+      res.status(500).json({ success: false, error: error.message || "Failed to deploy application to Firebase." });
+    }
+  });
+
   // Stripe Checkout Endpoint
   app.post("/api/create-checkout-session", async (req, res) => {
     try {
@@ -319,6 +363,35 @@ async function startServer() {
     } catch (error: any) {
       console.error("API Key Generation Error:", error);
       res.status(500).json({ success: false, error: error.message || "Failed to generate key." });
+    }
+  });
+
+  // Git Clone Endpoint
+  app.post("/api/git/clone", async (req, res) => {
+    try {
+      const { repoUrl } = req.body;
+      if (!repoUrl) {
+        return res.status(400).json({ success: false, error: "Repository URL is required" });
+      }
+
+      // Basic validation to prevent command injection
+      if (!repoUrl.match(/^https:\/\/(github\.com|gitlab\.com|bitbucket\.org)\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+(\.git)?$/)) {
+        return res.status(400).json({ success: false, error: "Invalid repository URL. Only HTTPS URLs from GitHub, GitLab, or Bitbucket are allowed." });
+      }
+
+      const { exec } = await import('child_process');
+      const util = await import('util');
+      const execPromise = util.promisify(exec);
+
+      // Clone into a temporary directory
+      const cloneDir = `/tmp/git-clone-${Date.now()}`;
+      
+      const { stdout, stderr } = await execPromise(`git clone ${repoUrl} ${cloneDir}`);
+
+      res.json({ success: true, output: stdout || stderr || "Repository cloned successfully.", cloneDir });
+    } catch (error: any) {
+      console.error("Git Clone Error:", error);
+      res.status(500).json({ success: false, error: error.message || "Failed to clone repository." });
     }
   });
 
